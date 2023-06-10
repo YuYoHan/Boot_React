@@ -46,10 +46,14 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
                          FilterChain chain) throws IOException, ServletException {
         
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+
+
+        // 1. Requset Header에서 JWT 토큰 추출
         String jwt = resolveToken(httpServletRequest);
         String requestURI = httpServletRequest.getRequestURI();
 
         if(StringUtils.hasText(jwt) && jwtProvider.validateToken(jwt)) {
+            // 토큰이 유효할 경우 토큰에서 Authentication 객체를 가지고 와서 SecurityContext 에 저장
             Authentication authentication = jwtProvider.getAuthentication(jwt);
             SecurityContextHolder.getContext().setAuthentication(authentication);
             log.info("Security Context에 '{}' 인증 정보를 저장했습니다., uri : {}",

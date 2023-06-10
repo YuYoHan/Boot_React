@@ -2,6 +2,7 @@ package com.example.jwt.entity;
 
 
 import com.example.jwt.domain.Role;
+import com.example.jwt.domain.jwt.TokenDTO;
 import lombok.*;
 
 import javax.persistence.*;

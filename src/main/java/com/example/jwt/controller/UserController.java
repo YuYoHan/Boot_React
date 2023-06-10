@@ -2,6 +2,7 @@ package com.example.jwt.controller;
 
 import com.example.jwt.domain.Role;
 import com.example.jwt.domain.User;
+import com.example.jwt.domain.jwt.TokenDTO;
 import com.example.jwt.entity.UserEntity;
 import com.example.jwt.repository.UserRepository;
 import com.example.jwt.service.UserService;
@@ -12,13 +13,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -38,21 +37,24 @@ public class UserController {
         UserEntity userEntity = userService.signUp(user);
 
         return ResponseEntity.ok().body(userEntity);
-
     }
 
-//    @PostMapping("/login")
-//    public ResponseEntity<?> login(@RequestBody User user) {
-//        log.info("로그인 유저 : " + user);
-//
-//        String email = user.getEmail();
-//        String password = user.getPassword();
-//
-//        UserEntity byEmailAndPassword = userRepository.findByEmailAndPassword(email, password);
-//
-//        return ResponseEntity.ok().body(byEmailAndPassword);
-//
-//    }
+    @GetMapping("/{id}")
+    public ResponseEntity<?> search(@PathVariable Long id) {
+        Optional<UserEntity> byId = userService.findById(id);
+        return ResponseEntity.ok().body(byId);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> authorize(@RequestBody User user) {
+
+        String email = user.getEmail();
+        String password = user.getPassword();
+
+        TokenDTO login = userService.login(email, password);
+
+        return ResponseEntity.ok().body(login);
+    }
 
 
 //    @GetMapping("/user")

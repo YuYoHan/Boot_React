@@ -1,5 +1,6 @@
 package com.example.jwt.config.jwt;
 
+import com.example.jwt.domain.jwt.TokenDTO;
 import com.example.jwt.entity.UserEntity;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -25,64 +26,86 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-@PropertySource("classpath:application-jwt.properties")
-public class JwtProvider implements InitializingBean {
+public class JwtProvider {
 
-    private final static String AUTHORITIES_KEY = "auth";
-    private final String secret;
-    private final long tokenValidityInMilliseconds;
+    private static final String AUTHORITIES_KEY = "auth";
     private Key key;
 
-    public JwtProvider(@Value("${jwt.secret_key}") String secret,
-                       @Value("${jwt.token_validity_in_seconds}") long tokenValidityInMilliseconds) {
-        this.secret = secret;
-        this.tokenValidityInMilliseconds = tokenValidityInMilliseconds;
-    }
-
-    // 빈이 생성되고 주입을 받은 후에 secret값을 Base64 Decode해서 key 변수에 할당하기 위해
-    @Override
-    public void afterPropertiesSet() throws Exception {
+    public JwtProvider(@Value("${jwt.secret_key}") String secret
+                   ) {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createToken(Authentication authentication) {
+
+    // 유저 정보를 가지고 AccessToken, RefreshToken을 생성하는 메서드
+    public TokenDTO createToken(Authentication authentication) {
+
+        // 권한 가져오기
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
-        // 토큰의 expire 시간을 설정
         long now = (new Date()).getTime();
-        Date validity = new Date(now + this.tokenValidityInMilliseconds);
 
-        return Jwts.builder()
+        // Access Token 생성
+        Date accessTokenExpire = new Date(now + 360000);
+        String accessToken = Jwts.builder()
                 .setSubject(authentication.getName())
-                // 정보 저장
-                .claim(AUTHORITIES_KEY, authorities)
-                // 사용할 암호화 알고리즘과 , signature 에 들어갈 secret값 세팅
+                .claim("auth", authorities)
+                .setExpiration(accessTokenExpire)
                 .signWith(key, SignatureAlgorithm.ES512)
-                // set Expire Time 해당 옵션 안넣으면 expire안함
-                .setExpiration(validity)
                 .compact();
+
+        // Refresh Token 생성
+        // Date 생성자에 삽입하는 숫자 86480000은 토큰의 유효기간으로써 1일을 나타낸다.
+        String refreshToken = Jwts.builder()
+                .setExpiration(new Date(now + 86400000))
+                .signWith(key, SignatureAlgorithm.ES512)
+                .compact();
+
+        return TokenDTO.builder()
+                .grantType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+
     }
 
+    // JWT 토큰을 복호화하여 토큰에 들어있는 정보를 꺼내는 코드
     // 토큰으로 클레임을 만들고 이를 이용해 유저 객체를 만들어서 최종적으로 authentication 객체를 리턴
     // 인증 정보 조회
     public Authentication getAuthentication(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
 
+        // 토큰 복호화 메소드
+        Claims claims = parseClaims(token);
+
+        if(claims.get("auth") == null) {
+            throw new RuntimeException("권한 정보가 없는 토큰입니다.");
+        }
+
+        // 클레임 권한 정보 가져오기
         Collection<? extends GrantedAuthority> authorities =
                 Arrays.stream(claims.get(AUTHORITIES_KEY).toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
+        // UserDetails 객체를 만들어서 Authentication 리턴
         User principal = new User(claims.getSubject(), "", authorities);
 
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
+    }
+
+    private Claims parseClaims(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            return e.getClaims();
+        }
     }
 
     // 토큰의 유효성 검증을 수행
