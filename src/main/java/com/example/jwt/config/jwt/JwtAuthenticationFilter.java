@@ -40,13 +40,14 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
     public static final String HEADER_AUTHORIZATION ="Authorization" ;
     private final JwtProvider jwtProvider;
 
+
+    // doFilter는 토큰의 인증정보를 SecurityContext에 저장하는 역할 수행
     @Override
     public void doFilter(ServletRequest request,
                          ServletResponse response, 
                          FilterChain chain) throws IOException, ServletException {
         
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-
 
         // 1. Requset Header에서 JWT 토큰 추출
         String jwt = resolveToken(httpServletRequest);

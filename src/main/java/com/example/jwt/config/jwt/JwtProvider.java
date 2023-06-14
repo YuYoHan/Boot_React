@@ -1,38 +1,48 @@
 package com.example.jwt.config.jwt;
 
 import com.example.jwt.domain.jwt.TokenDTO;
-import com.example.jwt.entity.UserEntity;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
+import javax.xml.bind.DatatypeConverter;
 import java.security.Key;
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
 
 @Slf4j
 @Component
-public class JwtProvider {
+public class JwtProvider implements InitializingBean {
 
     private static final String AUTHORITIES_KEY = "auth";
+    private final String secret;
+    private final long tokenValidityInMilliseconds;
     private Key key;
 
-    public JwtProvider(@Value("${jwt.secret_key}") String secret
+
+
+    public JwtProvider(@Value("${jwt.secret_key}") String secret,
+                       @Value("${jwt.access.expiration}") long tokenValidityInMilliseconds
                    ) {
+        this.secret = secret;
+        this.tokenValidityInMilliseconds = tokenValidityInMilliseconds * 1000;
+
+    }
+
+    // 여기서 InitializingBean를 상속받고 이 메소드를 오버라이드한 이유는
+    // Bean이 생성이 되고 생성자를 통해서 secret 값을 Base64 Decode해서 key 변수에 할당하기 위함이다.
+    @Override
+    public void afterPropertiesSet() throws Exception {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
@@ -49,18 +59,20 @@ public class JwtProvider {
         long now = (new Date()).getTime();
 
         // Access Token 생성
-        Date accessTokenExpire = new Date(now + 360000);
+        Date accessTokenExpire = new Date(now + this.tokenValidityInMilliseconds);
         String accessToken = Jwts.builder()
                 .setSubject(authentication.getName())
-                .claim("auth", authorities)
+                .claim(AUTHORITIES_KEY, authorities)
                 .setExpiration(accessTokenExpire)
-                .signWith(key, SignatureAlgorithm.ES512)
+                .signWith(  key, SignatureAlgorithm.ES512)
                 .compact();
 
         // Refresh Token 생성
-        // Date 생성자에 삽입하는 숫자 86480000은 토큰의 유효기간으로써 1일을 나타낸다.
+        Date refreshTokenExpire = new Date(now + this.tokenValidityInMilliseconds + 86400);
         String refreshToken = Jwts.builder()
-                .setExpiration(new Date(now + 86400000))
+                .setSubject(authentication.getName())
+                .claim(AUTHORITIES_KEY, authorities)
+                .setExpiration(refreshTokenExpire)
                 .signWith(key, SignatureAlgorithm.ES512)
                 .compact();
 

@@ -1,6 +1,6 @@
 package com.example.jwt.config.auth;
 
-import com.example.jwt.entity.UserEntity;
+import com.example.jwt.entity.user.UserEntity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -33,7 +33,7 @@ public class PrincipalDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return userEntity.getPassword();
+        return userEntity.getUserPw();
     }
 
     @Override

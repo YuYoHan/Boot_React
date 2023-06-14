@@ -1,7 +1,7 @@
 package com.example.jwt.config.auth;
 
-import com.example.jwt.entity.UserEntity;
-import com.example.jwt.repository.UserRepository;
+import com.example.jwt.entity.user.UserEntity;
+import com.example.jwt.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,7 +21,7 @@ public class PrincipalDetailService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        UserEntity userEntity = userRepository.findByEmail(email);
+        UserEntity userEntity = userRepository.findByUserEmail(email);
         log.info("user : " + userEntity);
         return new PrincipalDetails(userEntity);
     }

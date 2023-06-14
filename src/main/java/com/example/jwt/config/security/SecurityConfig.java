@@ -1,7 +1,6 @@
 package com.example.jwt.config.security;
 
 import com.example.jwt.config.jwt.JwtAccessDeniedHandler;
-import com.example.jwt.config.jwt.JwtAuthenticationFilter;
 import com.example.jwt.config.jwt.JwtProvider;
 import com.example.jwt.config.jwt.JwtAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @RequiredArgsConstructor
@@ -36,25 +34,28 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers("/api/v1/user/**")
-                .access("hasRole('ROLE_USER') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
-                .antMatchers("/api/v1/manager/**")
-                .access("hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
-                .antMatchers("/api/v1/admin/**")
-                .access("hasRole('ROLE_ADMIN')")
-                .anyRequest().permitAll()
+                    .antMatchers("/api/v1/users/**")
+                        .access("hasRole('ROLE_USER') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
+                    .antMatchers("/api/v1/managers/**")
+                        .access("hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
+                    .antMatchers("/api/v1/admins/**")
+                        .access("hasRole('ROLE_ADMIN')")
+                .anyRequest().permitAll();
 
                  // JwtFilter 추가
-                .and()
+        http
                 // JWT Token을 위한 Filter를 아래에서 만들어 줄건데,
                 // 이 Filter를 어느위치에서 사용하겠다고 등록을 해주어야 Filter가 작동이 됩니다.
                 // security 로직에 JwtFilter 등록
-                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
+//                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
+                .apply(new JwtSecurityConfig(jwtProvider));
 
+        http
                 .exceptionHandling()
                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
                 .accessDeniedHandler(new JwtAccessDeniedHandler());
 
         return http.build();
     }
+
 }

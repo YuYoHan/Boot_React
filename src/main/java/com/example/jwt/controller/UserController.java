@@ -1,18 +1,18 @@
 package com.example.jwt.controller;
 
-import com.example.jwt.domain.Role;
-import com.example.jwt.domain.User;
+import com.example.jwt.domain.user.LoginDTO;
+import com.example.jwt.domain.user.UserDTO;
 import com.example.jwt.domain.jwt.TokenDTO;
-import com.example.jwt.entity.UserEntity;
-import com.example.jwt.repository.UserRepository;
-import com.example.jwt.service.UserService;
+import com.example.jwt.entity.user.UserEntity;
+import com.example.jwt.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -26,34 +26,52 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/home")
-    public String home() {
-        return "home";
-    }
-
     @PostMapping("/")
-    public ResponseEntity<?> join(@RequestBody User user) throws Exception {
+    // BindingResult 타입의 매개변수를 지정하면 BindingResult 매개 변수가 입력값 검증 예외를 처리한다.
+    public ResponseEntity<?> join(@Validated @RequestBody UserDTO userDTO,
+                                  BindingResult result) throws Exception {
 
-        UserEntity userEntity = userService.signUp(user);
+        // 입렵값 검증 예외가 발생하면 예외 메시지를 응답한다.
+        if(result.hasErrors()) {
+            log.info("result.hasErrors() : " + result.hasErrors());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result.getClass().getSimpleName());
+        }
 
-        return ResponseEntity.ok().body(userEntity);
+        try {
+            String join = userService.signUp(userDTO);
+            // 아이디가 있으면 아이디가 존재합니다.가 리턴
+            // 아이디가 없으면 회원가입에 성공했습니다. 가 리턴
+            return ResponseEntity.ok().body(join);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+
+
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> search(@PathVariable Long id) {
-        Optional<UserEntity> byId = userService.findById(id);
-        return ResponseEntity.ok().body(byId);
+    @GetMapping("/api/v1/users/{id}")
+    public ResponseEntity<?> search(@PathVariable Long id) throws Exception{
+        try {
+            Optional<UserEntity> byId = userService.findById(id);
+            return ResponseEntity.ok().body(byId);
+        } catch (NullPointerException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authorize(@RequestBody User user) {
+    public ResponseEntity<?> login(@RequestBody UserDTO userDTO) throws Exception {
 
-        String email = user.getEmail();
-        String password = user.getPassword();
+        try {
+            ResponseEntity<TokenDTO> login =
+                    userService.login(userDTO.getUserEmail(), userDTO.getUserPw());
 
-        TokenDTO login = userService.login(email, password);
+            return ResponseEntity.ok().body(login);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
 
-        return ResponseEntity.ok().body(login);
     }
 
 
@@ -70,7 +88,7 @@ public class UserController {
 
     // /logout 요청을 하면 로그아웃을 담당하는 핸들러인 SecurityContextLogoutHandler의
     // logout() 메소드를 호출해서 로그아웃합니다.
-    @GetMapping("/logout")
+    @GetMapping("/api/v1/users/logout")
     public String logout(HttpServletRequest request,
                          HttpServletResponse response) {
         new SecurityContextLogoutHandler().logout(

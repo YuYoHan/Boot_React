@@ -1,8 +1,7 @@
-package com.example.jwt.entity;
+package com.example.jwt.entity.user;
 
 
-import com.example.jwt.domain.Role;
-import com.example.jwt.domain.jwt.TokenDTO;
+import com.example.jwt.domain.user.Role;
 import lombok.*;
 
 import javax.persistence.*;
@@ -16,17 +15,17 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long id;
-    private String email;
+    private String userEmail;
     private String userName;
-    private String password;
+    private String userPw;
     @Enumerated(EnumType.STRING)
     private Role role;       // USER, ADMIN
 
     @Builder
-    public UserEntity(String email, String userName, String password, Role role) {
-        this.email = email;
+    public UserEntity(String userEmail, String userName, String userPw, Role role) {
+        this.userEmail = userEmail;
         this.userName = userName;
-        this.password = password;
+        this.userPw = userPw;
         this.role = role;
     }
 }
