@@ -22,29 +22,21 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-public class JwtProvider implements InitializingBean {
+public class JwtProvider {
 
     private static final String AUTHORITIES_KEY = "auth";
-    private final String secret;
-    private final long tokenValidityInMilliseconds;
+
+    @Value("${jwt.access.expiration}")
+    private long tokenValidityInMilliseconds;
     private Key key;
 
 
 
-    public JwtProvider(@Value("${jwt.secret_key}") String secret,
-                       @Value("${jwt.access.expiration}") long tokenValidityInMilliseconds
+    public JwtProvider(@Value("${jwt.secret_key}") String secret
                    ) {
-        this.secret = secret;
-        this.tokenValidityInMilliseconds = tokenValidityInMilliseconds * 1000;
+        byte[] secretByteKey = DatatypeConverter.parseBase64Binary(secret);
+        this.key = Keys.hmacShaKeyFor(secretByteKey);
 
-    }
-
-    // 여기서 InitializingBean를 상속받고 이 메소드를 오버라이드한 이유는
-    // Bean이 생성이 되고 생성자를 통해서 secret 값을 Base64 Decode해서 key 변수에 할당하기 위함이다.
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
-        this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
 
@@ -64,7 +56,7 @@ public class JwtProvider implements InitializingBean {
                 .setSubject(authentication.getName())
                 .claim(AUTHORITIES_KEY, authorities)
                 .setExpiration(accessTokenExpire)
-                .signWith(  key, SignatureAlgorithm.ES512)
+                .signWith(  key, SignatureAlgorithm.HS256)
                 .compact();
 
         // Refresh Token 생성
@@ -73,7 +65,7 @@ public class JwtProvider implements InitializingBean {
                 .setSubject(authentication.getName())
                 .claim(AUTHORITIES_KEY, authorities)
                 .setExpiration(refreshTokenExpire)
-                .signWith(key, SignatureAlgorithm.ES512)
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
 
         return TokenDTO.builder()
