@@ -27,6 +27,7 @@ public class UserDTO {
     private String userPw;
     private Role role;
 
+
     @Builder
     public UserDTO(String userEmail, String userName, String userPw, Role role) {
         this.userEmail = userEmail;

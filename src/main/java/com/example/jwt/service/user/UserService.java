@@ -5,7 +5,9 @@ import com.example.jwt.config.jwt.JwtProvider;
 import com.example.jwt.domain.user.Role;
 import com.example.jwt.domain.user.UserDTO;
 import com.example.jwt.domain.jwt.TokenDTO;
-import com.example.jwt.entity.user.UserEntity;
+import com.example.jwt.entity.TokenEntity;
+import com.example.jwt.entity.UserEntity;
+import com.example.jwt.repository.jwt.TokenRepository;
 import com.example.jwt.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ public class UserService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final JwtProvider jwtProvider;
+    private final TokenRepository tokenRepository;
 
     // 회원가입
     public String signUp(UserDTO userDTO) throws Exception {
@@ -59,29 +62,40 @@ public class UserService {
 //        log.info("userEmail : " + byEmail);
 
 
-            // 1. Login ID/PW를 기반으로 UsernamePasswordAuthenticationToken 생성
-            UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(userEmail, userPw);
+        // 1. Login ID/PW를 기반으로 UsernamePasswordAuthenticationToken 생성
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(userEmail, userPw);
 
-            // 2. 실제 검증 (사용자 비밀번호 체크)이 이루어지는 부분
-            // authenticateToken을 이용해서 Authentication 객체를 생성하려고
-            // authentication 매서드가 실행될 때
-            // CustomUserDetailsService 에서 만든 loadUserByUsername 메서드가 실행
-            Authentication authentication = authenticationManagerBuilder
-                    .getObject()
-                    .authenticate(authenticationToken);
+        // 2. 실제 검증 (사용자 비밀번호 체크)이 이루어지는 부분
+        // authenticateToken을 이용해서 Authentication 객체를 생성하려고
+        // authentication 매서드가 실행될 때
+        // CustomUserDetailsService 에서 만든 loadUserByUsername 메서드가 실행
+        Authentication authentication = authenticationManagerBuilder
+                .getObject()
+                .authenticate(authenticationToken);
 
-            // 해당 객체를 SecurityContextHolder에 저장하고
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        // 해당 객체를 SecurityContextHolder에 저장하고
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // authentication 객체를 createToken 메소드를 통해서 JWT Token을 생성
-            // 3. 인증 정보를 기반으로 JWT 토큰 생성
-            TokenDTO tokenDTO = jwtProvider.createToken(authentication);
+        // authentication 객체를 createToken 메소드를 통해서 JWT Token을 생성
+        // 3. 인증 정보를 기반으로 JWT 토큰 생성
+        TokenDTO tokenDTO = jwtProvider.createToken(authentication);
 
-            HttpHeaders headers = new HttpHeaders();
-            // response header에 jwt token을 넣어줌
-            headers.add(JwtAuthenticationFilter.HEADER_AUTHORIZATION, "Bearer " + tokenDTO);
+        HttpHeaders headers = new HttpHeaders();
+        // response header에 jwt token을 넣어줌
+        headers.add(JwtAuthenticationFilter.HEADER_AUTHORIZATION, "Bearer " + tokenDTO);
 
-            return new ResponseEntity<>(tokenDTO, headers, HttpStatus.OK);
-        }
+        TokenEntity token = TokenEntity.builder()
+                .grantType(tokenDTO.getGrantType())
+                .accessToken(tokenDTO.getAccessToken())
+                .refreshToken(tokenDTO.getRefreshToken())
+                .userEmail(tokenDTO.getUserEmail())
+                .build();
+
+        tokenRepository.save(token);
+
+        log.info("Token : " + token);
+
+        return new ResponseEntity<>(tokenDTO, headers, HttpStatus.OK);
+    }
 }

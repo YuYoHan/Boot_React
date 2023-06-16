@@ -1,9 +1,8 @@
 package com.example.jwt.controller;
 
-import com.example.jwt.domain.user.LoginDTO;
 import com.example.jwt.domain.user.UserDTO;
 import com.example.jwt.domain.jwt.TokenDTO;
-import com.example.jwt.entity.user.UserEntity;
+import com.example.jwt.entity.UserEntity;
 import com.example.jwt.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

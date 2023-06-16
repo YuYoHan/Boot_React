@@ -72,6 +72,9 @@ public class JwtProvider {
                 .grantType("Bearer")
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                // principalDeatails에서 getUserName 메소드가 반환한 것을 담아준다.
+                // 이메일을 반환하도록 구성했으니 이메일이 반환됩니다.
+                .userEmail(authentication.getName())
                 .build();
 
     }

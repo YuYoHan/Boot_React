@@ -1,6 +1,6 @@
 package com.example.jwt.config.auth;
 
-import com.example.jwt.entity.user.UserEntity;
+import com.example.jwt.entity.UserEntity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -38,7 +38,7 @@ public class PrincipalDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return userEntity.getUserName();
+        return userEntity.getUserEmail();
     }
 
     // 계정 만료 여부 반환

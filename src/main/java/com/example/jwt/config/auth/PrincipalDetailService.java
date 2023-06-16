@@ -1,6 +1,6 @@
 package com.example.jwt.config.auth;
 
-import com.example.jwt.entity.user.UserEntity;
+import com.example.jwt.entity.UserEntity;
 import com.example.jwt.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

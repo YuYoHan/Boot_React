@@ -1,4 +1,4 @@
-package com.example.jwt.entity.user;
+package com.example.jwt.entity;
 
 
 import com.example.jwt.domain.user.Role;
@@ -20,6 +20,7 @@ public class UserEntity {
     private String userPw;
     @Enumerated(EnumType.STRING)
     private Role role;       // USER, ADMIN
+
 
     @Builder
     public UserEntity(String userEmail, String userName, String userPw, Role role) {
